@@ -13,7 +13,8 @@
       "backgroundColor": "#ffffff"
     },
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "buildNumber": "2"
     },
     "android": {
       "adaptiveIcon": {
@@ -21,7 +22,8 @@
         "backgroundColor": "#ffffff"
       },
       "edgeToEdgeEnabled": true,
-      "package": "com.sethmoffat.streambuddy"
+      "package": "com.sethmoffat.streambuddy",
+      "versionCode": 2
     },
     "web": {
       "favicon": "./assets/favicon.png"

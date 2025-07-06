@@ -1,8 +1,9 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { StatusBar } from 'expo-status-bar';
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { StyleSheet } from 'react-native';
+import * as SplashScreen from 'expo-splash-screen';
 
 import HomeScreen from './src/screens/HomeScreen';
 import ScheduleScreen from './src/screens/ScheduleScreen';
@@ -12,7 +13,27 @@ import EditTaskScreen from './src/screens/EditTaskScreen';
 
 const Stack = createNativeStackNavigator();
 
+// Keep the splash screen visible while we fetch resources
+SplashScreen.preventAutoHideAsync();
+
 export default function App() {
+  useEffect(() => {
+    // Simulate app loading (you can replace this with actual loading logic)
+    const prepare = async () => {
+      try {
+        // Add any app initialization here
+        await new Promise(resolve => setTimeout(resolve, 2000)); // Show splash for 2 seconds
+      } catch (e) {
+        console.warn(e);
+      } finally {
+        // Hide the splash screen
+        await SplashScreen.hideAsync();
+      }
+    };
+
+    prepare();
+  }, []);
+
   return (
     <NavigationContainer>
       <StatusBar style="light" backgroundColor="#8A2BE2" />
@@ -31,27 +52,27 @@ export default function App() {
         <Stack.Screen 
           name="Home" 
           component={HomeScreen} 
-          options={{ title: 'Stream Buddy' }}
+          options={{ title: '' }}
         />
         <Stack.Screen 
           name="Schedule" 
           component={ScheduleScreen} 
-          options={{ title: 'Stream Schedule' }}
+          options={{ title: '' }}
         />
         <Stack.Screen 
           name="Timer" 
           component={TimerScreen} 
-          options={{ title: 'Active Timer' }}
+          options={{ title: '' }}
         />
         <Stack.Screen 
           name="AddTask" 
           component={AddTaskScreen} 
-          options={{ title: 'Add New Task' }}
+          options={{ title: '' }}
         />
         <Stack.Screen 
           name="EditTask" 
           component={EditTaskScreen} 
-          options={{ title: 'Edit Task' }}
+          options={{ title: '' }}
         />
       </Stack.Navigator>
     </NavigationContainer>
