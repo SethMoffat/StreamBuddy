@@ -11,7 +11,7 @@ import {
   Platform,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { loadTasks, saveTasks } from '../utils/storage';
+import { updateTask } from '../firebase/storage';
 
 export default function EditTaskScreen({ route, navigation }) {
   const { task } = route.params;
@@ -45,7 +45,7 @@ export default function EditTaskScreen({ route, navigation }) {
     return true;
   };
 
-  const saveTask = async () => {
+  const handleSaveTask = async () => {
     if (!validateInputs()) return;
 
     const duration = (parseInt(hours) || 0) * 3600 + (parseInt(minutes) || 0) * 60 + (parseInt(seconds) || 0);
@@ -59,26 +59,22 @@ export default function EditTaskScreen({ route, navigation }) {
     };
 
     try {
-      const existingTasks = await loadTasks();
-      const taskIndex = existingTasks.findIndex(t => t.id === task.id);
+      await updateTask(task.id, {
+        title: title.trim(),
+        description: description.trim(),
+        duration,
+      });
       
-      if (taskIndex !== -1) {
-        existingTasks[taskIndex] = updatedTask;
-        await saveTasks(existingTasks);
-        
-        Alert.alert(
-          'Success',
-          'Task updated successfully!',
-          [
-            {
-              text: 'OK',
-              onPress: () => navigation.navigate('Schedule'),
+      Alert.alert(
+        'Success',
+        'Task updated successfully!',
+        [
+          {
+            text: 'OK',
+            onPress: () => navigation.navigate('Schedule'),
             },
           ]
         );
-      } else {
-        Alert.alert('Error', 'Task not found');
-      }
     } catch (error) {
       Alert.alert('Error', 'Failed to update task. Please try again.');
     }
@@ -208,7 +204,7 @@ export default function EditTaskScreen({ route, navigation }) {
             <Text style={styles.cancelButtonText}>Cancel</Text>
           </TouchableOpacity>
           
-          <TouchableOpacity style={styles.saveButton} onPress={saveTask}>
+          <TouchableOpacity style={styles.saveButton} onPress={handleSaveTask}>
             <Ionicons name="checkmark" size={20} color="#fff" />
             <Text style={styles.saveButtonText}>Save Changes</Text>
           </TouchableOpacity>

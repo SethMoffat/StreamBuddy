@@ -10,7 +10,7 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect } from '@react-navigation/native';
-import { loadTasks, saveTasks, formatTime } from '../utils/storage';
+import { loadTasks, saveTasks, formatTime } from '../firebase/storage';
 
 export default function ScheduleScreen({ navigation }) {
   const [tasks, setTasks] = useState([]);

@@ -7,14 +7,25 @@
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
     "newArchEnabled": true,
+    "scheme": "streambuddy",
     "splash": {
-      "image": "./assets/splash-icon.png",
+      "image": "./assets/icon.png",
       "resizeMode": "contain",
-      "backgroundColor": "#ffffff"
+      "backgroundColor": "#8A2BE2"
     },
     "ios": {
       "supportsTablet": true,
-      "buildNumber": "2"
+      "buildNumber": "1",
+      "bundleIdentifier": "com.sethmoffat.streambuddy",
+      "splash": {
+        "image": "./assets/icon.png",
+        "resizeMode": "contain",
+        "backgroundColor": "#8A2BE2",
+        "tabletImage": "./assets/icon.png"
+      },
+      "infoPlist": {
+        "UILaunchStoryboardName": "SplashScreen"
+      }
     },
     "android": {
       "adaptiveIcon": {

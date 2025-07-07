@@ -10,11 +10,13 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { formatTime } from '../utils/storage';
+import { endSession, logAnalyticsEvent } from '../firebase/storage';
+import { getCurrentUser } from '../firebase/auth';
 
 const { width } = Dimensions.get('window');
 
 export default function TimerScreen({ route, navigation }) {
-  const { tasks, currentTaskIndex: initialTaskIndex = 0 } = route.params;
+  const { tasks, currentTaskIndex: initialTaskIndex = 0, sessionId } = route.params;
   
   const [currentTaskIndex, setCurrentTaskIndex] = useState(initialTaskIndex);
   const [timeRemaining, setTimeRemaining] = useState(tasks[initialTaskIndex]?.duration || 0);
@@ -51,6 +53,16 @@ export default function TimerScreen({ route, navigation }) {
     };
   }, [isRunning, isPaused, timeRemaining]);
 
+  // Clean up session when component unmounts (user exits early)
+  useEffect(() => {
+    return () => {
+      // Only end session if user exits before completing all tasks
+      if (sessionId && currentTaskIndex < tasks.length - 1) {
+        endStreamSession();
+      }
+    };
+  }, []);
+
   const showTaskCompleteAlert = () => {
     Alert.alert(
       'Task Complete! 🎉',
@@ -70,7 +82,7 @@ export default function TimerScreen({ route, navigation }) {
     );
   };
 
-  const moveToNextTask = () => {
+  const moveToNextTask = async () => {
     if (currentTaskIndex < tasks.length - 1) {
       const nextIndex = currentTaskIndex + 1;
       setCurrentTaskIndex(nextIndex);
@@ -79,6 +91,9 @@ export default function TimerScreen({ route, navigation }) {
       setIsPaused(false);
       setIsCompleted(false);
     } else {
+      // All tasks completed - end the session
+      await endStreamSession();
+      
       Alert.alert(
         'All Tasks Complete! 🎊',
         'Congratulations! You\'ve completed all tasks in your stream schedule.',
@@ -90,6 +105,45 @@ export default function TimerScreen({ route, navigation }) {
         ]
       );
     }
+  };
+  
+  const endStreamSession = async () => {
+    try {
+      const currentUser = getCurrentUser();
+      if (currentUser && sessionId) {
+        // Log stream completion
+        await logAnalyticsEvent('stream_completed', {
+          totalTasks: tasks.length,
+          completedTasks: currentTaskIndex + 1,
+          totalDuration: tasks.reduce((total, task) => total + task.duration, 0),
+          endTime: new Date().toISOString(),
+        }, currentUser.uid);
+        
+        // End the session
+        await endSession(sessionId, currentUser.uid);
+        console.log('Stream session ended');
+      }
+    } catch (error) {
+      console.warn('Error ending stream session:', error);
+    }
+  };
+
+  const handleStopStream = () => {
+    Alert.alert(
+      'Stop Stream',
+      'Are you sure you want to stop the stream? This will end your current session.',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        { 
+          text: 'Stop Stream',
+          style: 'destructive',
+          onPress: async () => {
+            await endStreamSession();
+            navigation.navigate('Home');
+          }
+        },
+      ]
+    );
   };
 
   const startTimer = () => {
@@ -245,6 +299,17 @@ export default function TimerScreen({ route, navigation }) {
         >
           <Ionicons name="play-skip-forward" size={24} color="#fff" />
           <Text style={styles.controlButtonText}>Skip</Text>
+        </TouchableOpacity>
+      </View>
+
+      {/* Stop Stream Button */}
+      <View style={styles.stopStreamContainer}>
+        <TouchableOpacity
+          style={styles.stopStreamButton}
+          onPress={handleStopStream}
+        >
+          <Ionicons name="stop" size={20} color="#ff4444" />
+          <Text style={styles.stopStreamText}>Stop Stream</Text>
         </TouchableOpacity>
       </View>
 
@@ -455,5 +520,25 @@ const styles = StyleSheet.create({
     color: '#ff4444',
     textAlign: 'center',
     marginTop: 50,
+  },
+  stopStreamContainer: {
+    alignItems: 'center',
+    marginBottom: 20,
+  },
+  stopStreamButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 10,
+    paddingHorizontal: 20,
+    borderRadius: 8,
+    borderWidth: 2,
+    borderColor: '#ff4444',
+    backgroundColor: '#fff',
+  },
+  stopStreamText: {
+    color: '#ff4444',
+    fontSize: 14,
+    fontWeight: '600',
+    marginLeft: 5,
   },
 });

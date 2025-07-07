@@ -11,7 +11,8 @@ import {
   Platform,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { loadTasks, saveTasks, generateId } from '../utils/storage';
+import { loadTasks, saveTask, generateId } from '../firebase/storage';
+import { getCurrentUser } from '../firebase/auth';
 
 export default function AddTaskScreen({ navigation }) {
   const [title, setTitle] = useState('');
@@ -43,7 +44,7 @@ export default function AddTaskScreen({ navigation }) {
     return true;
   };
 
-  const saveTask = async () => {
+  const handleSaveTask = async () => {
     if (!validateInputs()) return;
 
     const duration = (parseInt(hours) || 0) * 3600 + (parseInt(minutes) || 0) * 60 + (parseInt(seconds) || 0);
@@ -57,9 +58,10 @@ export default function AddTaskScreen({ navigation }) {
     };
 
     try {
-      const existingTasks = await loadTasks();
-      const updatedTasks = [...existingTasks, newTask];
-      await saveTasks(updatedTasks);
+      const currentUser = getCurrentUser();
+      const userId = currentUser?.uid || 'default';
+      
+      await saveTask(newTask, userId);
       
       Alert.alert(
         'Success',
@@ -201,7 +203,7 @@ export default function AddTaskScreen({ navigation }) {
         </View>
 
         {/* Save Button */}
-        <TouchableOpacity style={styles.saveButton} onPress={saveTask}>
+        <TouchableOpacity style={styles.saveButton} onPress={handleSaveTask}>
           <Ionicons name="checkmark" size={24} color="#fff" />
           <Text style={styles.saveButtonText}>Save Task</Text>
         </TouchableOpacity>

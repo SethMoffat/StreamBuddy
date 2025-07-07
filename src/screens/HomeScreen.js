@@ -11,6 +11,8 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect } from '@react-navigation/native';
 import { loadTasks, formatTime } from '../utils/storage';
+import { startSession, logAnalyticsEvent } from '../firebase/storage';
+import { getCurrentUser } from '../firebase/auth';
 
 const { width } = Dimensions.get('window');
 
@@ -18,6 +20,7 @@ export default function HomeScreen({ navigation }) {
   const [tasks, setTasks] = useState([]);
   const [nextTask, setNextTask] = useState(null);
   const [currentTaskIndex, setCurrentTaskIndex] = useState(0);
+  const [currentSessionId, setCurrentSessionId] = useState(null);
 
   useFocusEffect(
     React.useCallback(() => {
@@ -33,7 +36,7 @@ export default function HomeScreen({ navigation }) {
     }
   };
 
-  const startStream = () => {
+  const startStream = async () => {
     if (tasks.length === 0) {
       Alert.alert(
         'No Tasks Available',
@@ -43,9 +46,33 @@ export default function HomeScreen({ navigation }) {
       return;
     }
 
+    try {
+      // Start Firebase logging only when stream starts
+      const currentUser = getCurrentUser();
+      if (currentUser) {
+        // Start session tracking
+        const sessionId = await startSession(currentUser.uid);
+        setCurrentSessionId(sessionId);
+        console.log('Stream session started:', sessionId);
+        
+        // Log stream start event
+        await logAnalyticsEvent('stream_started', {
+          taskCount: tasks.length,
+          totalDuration: tasks.reduce((total, task) => total + task.duration, 0),
+          platform: 'mobile',
+          userType: currentUser.userType || 'unknown',
+          startTime: new Date().toISOString(),
+        }, currentUser.uid);
+      }
+    } catch (error) {
+      console.warn('Firebase logging failed, continuing with stream:', error);
+    }
+
+    // Navigate to timer regardless of logging success
     navigation.navigate('Timer', { 
       tasks,
-      currentTaskIndex: 0
+      currentTaskIndex: 0,
+      sessionId: currentSessionId
     });
   };
 
@@ -72,8 +99,18 @@ export default function HomeScreen({ navigation }) {
       <ScrollView contentContainerStyle={styles.scrollContent}>
         {/* Header Section */}
         <View style={styles.header}>
-          <Text style={styles.title}>Stream Buddy</Text>
-          <Text style={styles.subtitle}>Ready to stream?</Text>
+          <View style={styles.headerContent}>
+            <View>
+              <Text style={styles.title}>Stream Buddy</Text>
+              <Text style={styles.subtitle}>Ready to stream?</Text>
+            </View>
+            <TouchableOpacity 
+              style={styles.profileButton}
+              onPress={() => navigation.navigate('Profile')}
+            >
+              <Ionicons name="person-circle" size={32} color="#fff" />
+            </TouchableOpacity>
+          </View>
         </View>
 
         {/* Stats Section */}
@@ -181,6 +218,10 @@ const styles = StyleSheet.create({
   header: {
     padding: 20,
     backgroundColor: '#8A2BE2',
+  },
+  headerContent: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
     alignItems: 'center',
   },
   title: {
@@ -193,6 +234,9 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: '#fff',
     opacity: 0.9,
+  },
+  profileButton: {
+    padding: 5,
   },
   statsContainer: {
     flexDirection: 'row',
